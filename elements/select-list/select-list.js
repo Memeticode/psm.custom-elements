@@ -159,15 +159,11 @@ class SelectListUtils {
       case this.optionsAttributeTypeEnum.json:
         return this.getOptionsFromJson(options, search);
       case this.optionsAttributeTypeEnum.url:
-        const urlHttpHeaders = this.element.getAttribute('url-http-headers');
-        const optionsSearchParam = this.element.getAttribute('options-search-param');
-        return this.getOptionsFromUrl(options, search, urlHttpHeaders, optionsSearchParam);
+        return this.getOptionsFromUrl(options, search, urlHttpHeaders, searchParamName);
       case this.optionsAttributeTypeEnum.promise:
-        const promiseSearchParam = this.element.getAttribute('options-search-param');
-        return this.getOptionsFromPromise(options, search, promiseSearchParam);
+        return this.getOptionsFromPromise(options, search, searchParamName);
       case this.optionsAttributeTypeEnum.function:
-        const functionSearchParam = this.element.getAttribute('options-search-param');
-        return this.getOptionsFromFunction(options, search, functionSearchParam);
+        return this.getOptionsFromFunction(options, search, searchParamName);
       case this.optionsAttributeTypeEnum.global:
         return this.getOptionsFromGlobal(options, search);
       case this.optionsAttributeTypeEnum.element:
@@ -358,6 +354,8 @@ class SelectList extends HTMLElement {
     this.disabled = false;
     this.placeholder = 'Select...';
     this.debug = false;
+    this.urlHttpHeaders = "";
+    this.searchParamName = "";
 
     this.element = this;
     this.optionsStateEnum = SelectListUtils.optionsStateEnum.unloaded;
@@ -375,7 +373,7 @@ class SelectList extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['options', 'class', 'debug', 'value', 'multiple', 'searchable', 'disabled', 'placeholder', 'url-http-headers', 'search-param-name'];
+    return ['options', 'class', 'debug', 'value', 'multiple', 'searchable', 'disabled', 'placeholder', 'urlHttpHeaders', 'searchParamName'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -404,10 +402,10 @@ class SelectList extends HTMLElement {
       case 'placeholder':
         this.updatePlaceholder(newValue);
         break;          
-      case 'url-http-headers':
+      case 'urlHttpHeaders':
         this.urlHttpHeaders = newValue;
         break;
-      case 'search-param-name':
+      case 'searchParamName':
         this.searchParamName = newValue;
         break;
     }
@@ -423,19 +421,35 @@ class SelectList extends HTMLElement {
   }
 
   init() {
-    this.element = this;
-    this.updateSearchable(this.getAttribute('searchable'));
-    this.updateDisabled(this.getAttribute('disabled'));
-    this.updatePlaceholder(this.getAttribute('placeholder'));
-  
-    const optionsAttribute = this.getAttribute('options');
-    this.optionsAttributeTypeEnum = SelectListUtils.determineOptionsType(optionsAttribute);
+    try {
+      this.element = this;
+      this.updateSearchable(this.getAttribute('searchable'));
+      this.updateDisabled(this.getAttribute('disabled'));
+      this.updatePlaceholder(this.getAttribute('placeholder'));
+      this.urlHttpHeaders(this.getAttribute('urlHttpHeaders'));
+      this.searchParamName(this.getAttribute('searchParamName'));
+    
+      const optionsAttribute = this.getAttribute('options');
+      this.optionsAttributeTypeEnum = SelectListUtils.determineOptionsType(optionsAttribute);
+    }
+    catch (error)
+    {
+      this.logError(error);
+    }
   }
+
   async updateOptions(newValue) {
     this.setOptionsStateLoading();
     try {
       this.optionsAttributeTypeEnum = SelectListUtils.determineOptionsType(newValue);
-      this.options = await SelectListUtils.getOptions(newValue, this.optionsAttributeTypeEnum, this.searchBar.value, this.urlHttpHeaders, this.searchParamName, this);
+      this.options = await SelectListUtils.getOptions(
+        newValue,
+        this.optionsAttributeTypeEnum,
+        this.searchBar.value,
+        this.getAttribute('urlHttpHeaders'),
+        this.getAttribute('searchParamName'),
+        this
+      );
       this.filteredOptions = this.options;
       this.renderOptions();
       this.optionsStateEnum = SelectListUtils.optionsStateEnum.loaded;
@@ -510,7 +524,14 @@ class SelectList extends HTMLElement {
     }
   }
 
+  clearOptionsListMessages() {
+    const optionsList = this.optionsList;
+    const existingMessages = optionsList.querySelectorAll('.no-options, .loading-state, .error-state');
+    existingMessages.forEach(message => message.remove());
+  }
+
   renderNoOptions() {
+    this.clearOptionsListMessages();
     const noOptionsElement = document.createElement('div');
     noOptionsElement.classList.add('no-options');
     noOptionsElement.textContent = 'No options';
@@ -518,6 +539,7 @@ class SelectList extends HTMLElement {
   }
 
   renderLoadingState() {
+    this.clearOptionsListMessages();
     const loadingElement = document.createElement('div');
     loadingElement.classList.add('loading-state');
     loadingElement.textContent = 'Loading...';
@@ -525,9 +547,10 @@ class SelectList extends HTMLElement {
   }
 
   renderErrorState(errorMessage) {
+    this.clearOptionsListMessages();
     const errorElement = document.createElement('div');
     errorElement.classList.add('error-state');
-    errorElement.textContent = errorMessage || 'Error loading options';
+    errorElement.textContent = 'Error occurred';
     this.optionsList.appendChild(errorElement);
   }
 
@@ -763,7 +786,6 @@ class SelectList extends HTMLElement {
   handleKeydown(event) {
     switch (event.key) {
       case 'Enter':
-      case ' ':
         event.preventDefault();
         this.toggleOptions(event);
         break;

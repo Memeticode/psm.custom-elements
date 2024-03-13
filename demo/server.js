@@ -30,7 +30,7 @@ app.get('/api/options', (req, res) => {
     // Introduce a delay of 2 seconds
     setTimeout(() => {
         res.json(filteredOptions);
-    }, 2000);
+    }, 500);
 });
 
 
