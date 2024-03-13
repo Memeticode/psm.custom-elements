@@ -1,0 +1,129 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select List Demo</title>
+  <script src="../elements/select-list/select-list.js"></script>
+  <style>
+    /* Boilerplate ----------------------------------------*/
+
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+    
+    html, body {
+      box-sizing: border-box;
+      margin: 0px;
+    }
+    
+    .select-list-container {
+      height: 50px;
+      width: 250px;
+      padding-left: 25px;
+    }
+
+    h2 {
+      padding-left: 25px;
+      margin-top: 10px;
+    }
+
+    div.griddy {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+    }
+    
+  </style>
+</head>
+<body>
+  <script>
+    
+    const getOptionsFromApi = (searchTerm) => {
+      const url = `/api/options${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`;
+
+      return fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch options');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Assuming the API response is an array of option objects
+          return data;
+        })
+        .catch(error => {
+          console.error('Error fetching options:', error);
+          return []; // Return an empty array as a fallback
+        });
+    };
+  </script>
+  <h1>Select Elements Demo</h1>
+  <div class="griddy">
+    <h2>innerHtml</h2>
+    <div class="select-list-container">
+      <select-list class="custom-select" debug searchable
+        placeholder="Select item...">
+        <option value="1">Option 1</option>
+        <option value="2">Option 2</option>
+        <option value="3">Option 3</option>
+        <option value="4">Option 4</option>
+        <option value="5">Option 5</option>
+        <option value="6">Option 6</option>
+      </select-list>
+    </div>
+    <h2>Json - Objects</h2>
+    <div class="select-list-container">
+      <select-list class="custom-select" debug searchable
+        placeholder="Select item..."
+        options='[
+        {"value": "1", "label": "Option 1"}, 
+        {"value": "2", "label": "Option 2"}, 
+        {"value": "3", "label": "Option 3"}, 
+        {"value": "4", "label": "Aption 4"}, 
+        {"value": "5", "label": "Aption 5"}, 
+        {"value": "6", "label": "Aption 6"}
+      ]'></select-list>
+    </div>
+<!--     
+
+    <h2>Json - Literals</h2>
+    <div class="select-list-container">
+      <select-list class="custom-select" debug searchable
+        placeholder="Select item..."
+        options='[
+          "Option 1",
+          "Option 2",
+          "Option 3",
+          "Aption 4",
+          "Aption 5",
+          "Aption 6"
+      ]'></select-list>
+    </div>
+    <h2>Url</h2>
+    <div class="select-list-container">
+      <select-list class="custom-select" debug searchable
+        placeholder="Select item..."
+        options='/api/options'
+        url-http-headers=""
+        search-param-name="search">
+      </select-list>
+    </div> -->
+
+  </div>
+
+
+  <script>
+    const selectedValues = document.querySelectorAll('select-list');
+    selectedValues.forEach(select => {
+      select.addEventListener('change', event => {
+        console.log('Selected Value(s):', event.detail);
+      });
+    });
+  </script>
+</body>
+</html>
