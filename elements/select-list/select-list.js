@@ -28,8 +28,9 @@ class SelectListUtils {
     return window[name] && typeof window[name] === 'object';
   }
   static isElementReference(id) {
-    return document.getElementById(id) !== null;
+    return id.startsWith('#') && document.querySelector(id) !== null;
   }
+  
 
   // methods to get options depending on options type
   static async getOptionsFromInnerHtml(selectListElement, search) {
@@ -89,16 +90,17 @@ class SelectListUtils {
     return this.filterOptions(data, search);
   }
   
+
   static async getOptionsFromElement(options, search) {
-    const element = document.getElementById(options);
+    const element = document.querySelector(options);
     const optionElements = element.getElementsByTagName('option');
     const data = Array.from(optionElements).map(option => ({
-      label: option.textContent,
+      label: option.textContent.trim(),
       value: option.value
     }));
     return this.filterOptions(data, search);
   }
-  
+
   static parseHtmlOptions(html, search) {
     const tempElement = document.createElement('div');
     tempElement.innerHTML = html;
@@ -273,6 +275,8 @@ class SelectList extends HTMLElement {
           right: 0;
           max-height: 200px;
           overflow-y: auto;
+          overflow-x: auto;
+          white-space: nowrap;
           border: 1px solid #ccc;
           border-top: none;
           border-radius: 0 0 4px 4px;
@@ -508,12 +512,8 @@ class SelectList extends HTMLElement {
 
   renderOptions() {
     this.optionsList.innerHTML = '';
-    if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.loading) {
-      this.renderLoadingState();
-    } else if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.error) {
-      this.renderErrorState();
-    } else if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.loaded) {
-      if (this.filteredOptions.length === 0) {
+    if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.loaded) {
+      if (!Array.isArray(this.filteredOptions) || this.filteredOptions.length === 0) {
         this.renderNoOptions();
       } else {
         this.filteredOptions.forEach((option, index) => {
@@ -522,6 +522,11 @@ class SelectList extends HTMLElement {
         });
       }
     }
+    else if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.loading) {
+      this.renderLoadingState();
+    } else if (this.optionsStateEnum === SelectListUtils.optionsStateEnum.error) {
+      this.renderErrorState();
+    } 
   }
 
   clearOptionsListMessages() {
@@ -609,6 +614,8 @@ class SelectList extends HTMLElement {
     try {
       const optionsAttribute = this.getAttribute('options');
       this.optionsAttributeTypeEnum = SelectListUtils.determineOptionsType(optionsAttribute);
+
+      console.log('loading options for options:', this.optionsAttributeTypeEnum);
       this.options = await SelectListUtils.getOptions(optionsAttribute, this.optionsAttributeTypeEnum, this.searchBar.value, this.urlHttpHeaders, this.searchParamName, this);
       this.filteredOptions = this.options;
       this.optionsStateEnum = SelectListUtils.optionsStateEnum.loaded; // Set options state to loaded
